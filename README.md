@@ -1,0 +1,2 @@
+# kAi_ParkingSU
+The project aims to implement a parking space detection system utilizing a pre-trained YOLO (You Only Look Once) object detection model. This system will analyze CCTV footage to identify and monitor the availability of parking spaces in real-time without the need to train a custom YOLO model. The project's key steps include data collection, preprocessing, integration with the pre-trained YOLO model, real-time visualization, and alerts for available parking spaces. 

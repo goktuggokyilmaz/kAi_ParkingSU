@@ -28,25 +28,14 @@ def createlotspace(camera_angle,filepath):
             selected_coordinates.append((x, y))
             cv2.circle(image, (x, y), 4, (0, 255, 0), -1)
     
-            if len(selected_coordinates) == 4:
-                centre_x = 0
-                centre_y = 0 
-                centre_cord = []
-                for xcord, ycord in selected_coordinates:
-                    centre_x+=xcord
-                    centre_y+=ycord
-                centre_x= centre_x/4
-                centre_y= centre_y/4
-                centre_cord.append((centre_x,centre_y))
+            if len(selected_coordinates) == 6:
                 lotname= camera_angle+"-"+str(len(coordinate_groups))
                 booltest = False
-                coordinate_groups.append((lotname , centre_cord ,booltest,selected_coordinates.copy()))
+                coordinate_groups.append((lotname,booltest,selected_coordinates.copy()))
                 selected_coordinates = []
-                centre_cord = []
-    
                 # Draw green lines connecting the group of four coordinates
-                cv2.polylines(image, [np.array(coordinate_groups[-1][3::])], isClosed=True, color=(0, 255, 0), thickness=2)
-                cv2.putText(image, str(coordinate_groups[-1][0]), (int(centre_x), int(centre_y)), cv2.FONT_HERSHEY_PLAIN, 2, (0, 255, 0), 2)
+                cv2.polylines(image, [np.array(coordinate_groups[-1][2::])], isClosed=True, color=(0, 255, 0), thickness=2)
+                cv2.putText(image, str(coordinate_groups[-1][0]), ((coordinate_groups[-1][2::][0][1])), cv2.FONT_HERSHEY_PLAIN, 2, (0, 255, 0), 2)
 
                 cv2.imshow(str(camera_angle)+" View", image)
     
@@ -60,8 +49,8 @@ def createlotspace(camera_angle,filepath):
         with open(jsonname, "r") as file:
             coordinate_groups = json.load(file)
         for x in range(len(coordinate_groups)):
-            cv2.polylines(image, [np.array(coordinate_groups[x][3::])], isClosed=True, color=(0, 255, 0), thickness=2)
-            cv2.putText(image, str(coordinate_groups[x][0]), (int(coordinate_groups[x][1][0][0]) ,int(coordinate_groups[x][1][0][1])), cv2.FONT_HERSHEY_PLAIN, 2, (0, 255, 0), 2)
+            cv2.polylines(image, [np.array(coordinate_groups[x][2::])], isClosed=True, color=(0, 255, 0), thickness=2)
+            cv2.putText(image, str(coordinate_groups[-1][0]), ((coordinate_groups[x][2::][0][1])), cv2.FONT_HERSHEY_PLAIN, 2, (0, 255, 0), 2)
     else:
         print(f"The file '{jsonname}' does not exist.")
     while True:

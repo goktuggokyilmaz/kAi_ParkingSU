@@ -11,6 +11,7 @@ from ultralytics import YOLO
 import numpy as np
 import os
 import json
+from shapely.geometry import Polygon
 
 rgb_red = (0,0,255)
 rgb_green = (0,255,0)
@@ -38,7 +39,7 @@ def detectlot(camera_angle,filepath):
         print(f"The file '{json_name}' does not exist.")
     
     model = YOLO("yolov8m.pt")
-    
+    print(coordinate_groups[1])
     # Display the image in a window
     
     results = model(image,device="mps")#WE CAN add device="0"  Nvidia for processing with gpu in MAC its mps
@@ -47,24 +48,30 @@ def detectlot(camera_angle,filepath):
     bboxes = np.array(result.boxes.xyxy.cpu(),dtype = "int")
     classes = np.array(result.boxes.cls.cpu(),dtype = "int")
     for bbox, clss in zip(bboxes,classes):
-        if clss in [2,7]:
+        if clss in [2,7]: #YOLO checks for person etc so we are interested in persons only
             (x,y,x2,y2) = bbox
             cv2.rectangle(image,(x,y),(x2,y2),rgb_green,5)
-            cx= int((x2+x)/2)
-            cy= int((y2+y)/2)+20
-            cv2.circle(image, ( cx, cy ), 4, rgb_purple, -1)
+            # cx= int((x2+x)/2)
+            # cy= int((y2+y)/2)+20
+            # cv2.circle(image, ( cx, cy ), 4, rgb_purple, -1)
+            cord1 = [(x, y), (x2, y), (x2, y2), (x, y2)]
+            poly1 = Polygon(cord1)
             cv2.putText(image,str(clss),(x,y-5),cv_font ,2,(0,255,0),2)
             for testlots in range(len(coordinate_groups)):
-                if (cv2.pointPolygonTest((np.array(coordinate_groups[testlots][3::])),(cx,cy),False) > -1):
-                    coordinate_groups[testlots][2] = True
-                    break #if it finds any overlapping no need to check for other lot spaces
+                poly2 = Polygon(coordinate_groups[testlots][2::][0])
+                intersec = poly1.intersection(poly2).area
+                iou = int((poly1.area + poly2.area + intersec)/10000)
+                print(coordinate_groups[testlots][0], iou)
+                if (iou > 70):
+                    coordinate_groups[testlots][1] = True
+                     #if it finds any overlapping no need to check for other lot spaces
     for x in range(len(coordinate_groups)):
-        if coordinate_groups[x][2] == False: #Lot is free (no car)
-            cv2.polylines(image, [np.array(coordinate_groups[x][3::])], isClosed=True, color=rgb_green, thickness=2)
-            cv2.putText(image, str(coordinate_groups[x][0]), (int(coordinate_groups[x][1][0][0]) ,int(coordinate_groups[x][1][0][1])), cv_font, 2, rgb_green, 2)
+        if coordinate_groups[x][1] == False: #Lot is free (no car)
+            cv2.polylines(image, [np.array(coordinate_groups[x][2::])], isClosed=True, color=rgb_green, thickness=2)
+            cv2.putText(image, str(coordinate_groups[x][0]), ((coordinate_groups[x][2::][0][1])), cv_font, 2, rgb_green, 2)
         else: #Lot contains car
-            cv2.polylines(image, [np.array(coordinate_groups[x][3::])], isClosed=True, color=rgb_red, thickness=2)
-            cv2.putText(image, str(coordinate_groups[x][0]), (int(coordinate_groups[x][1][0][0]) ,int(coordinate_groups[x][1][0][1])), cv_font, 2, rgb_red, 2)
+            cv2.polylines(image, [np.array(coordinate_groups[x][2::])], isClosed=True, color=rgb_red, thickness=2)
+            cv2.putText(image, str(coordinate_groups[x][0]), ((coordinate_groups[x][2::][0][1])), cv_font, 2, rgb_red, 2)
     cv2.imshow('Img', image)
     #print(bboxes)
     cv2.startWindowThread()

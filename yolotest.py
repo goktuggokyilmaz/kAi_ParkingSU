@@ -47,22 +47,26 @@ def detectlot(camera_angle,filepath):
     
     bboxes = np.array(result.boxes.xyxy.cpu(),dtype = "int")
     classes = np.array(result.boxes.cls.cpu(),dtype = "int")
+    counter = 0
     for bbox, clss in zip(bboxes,classes):
         if clss in [2,7]: #YOLO checks for person etc so we are interested in persons only
             (x,y,x2,y2) = bbox
-            cv2.rectangle(image,(x,y),(x2,y2),rgb_green,5)
+            print(counter)
+            cv2.rectangle(image,(x,y),(x2,y2),rgb_purple,2)
             # cx= int((x2+x)/2)
             # cy= int((y2+y)/2)+20
             # cv2.circle(image, ( cx, cy ), 4, rgb_purple, -1)
             cord1 = [(x, y), (x2, y), (x2, y2), (x, y2)]
             poly1 = Polygon(cord1)
-            cv2.putText(image,str(clss),(x,y-5),cv_font ,2,(0,255,0),2)
+            cv2.putText(image,str(clss)+"-"+str(counter),(x,y-5),cv_font ,2,(255,0,0),2)
+            counter+= 1
             for testlots in range(len(coordinate_groups)):
                 poly2 = Polygon(coordinate_groups[testlots][2::][0])
                 intersec = poly1.intersection(poly2).area
-                iou = int((poly1.area + poly2.area + intersec)/10000)
+                union = (poly1.area + poly2.area - intersec)
+                iou = intersec/union
                 print(coordinate_groups[testlots][0], iou)
-                if (iou > 70):
+                if (iou > 0.45):
                     coordinate_groups[testlots][1] = True
                      #if it finds any overlapping no need to check for other lot spaces
     for x in range(len(coordinate_groups)):
@@ -76,7 +80,7 @@ def detectlot(camera_angle,filepath):
     #print(bboxes)
     cv2.startWindowThread()
     for groups in coordinate_groups:
-        lot_bools.append((groups[0],groups[2]))
+        lot_bools.append((groups[0],groups[1]))
     with open(bol_json_name, "w") as final_file:
         json.dump(lot_bools, final_file)
     print(cv2.waitKey(0))

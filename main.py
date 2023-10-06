@@ -18,7 +18,7 @@ def createlotspace(camera_angle,filepath):
     # Load the pre-existing image from the file
     image = cv2.imread(filepath)
     jsonname = camera_angle+".json"
-    #CORDINATES Are appended SUCH ((AngelName+lotcount),CenterPoints,Allpoints)
+    #CORDINATES Are appended SUCH ((AngelName+lotcount),CenterPoints,Booltest,Allpoints)
     # Callback function for mouse click events
     def mouse_callback(event, x, y, flags, param):
         global selected_coordinates
@@ -39,12 +39,13 @@ def createlotspace(camera_angle,filepath):
                 centre_y= centre_y/4
                 centre_cord.append((centre_x,centre_y))
                 lotname= camera_angle+"-"+str(len(coordinate_groups))
-                coordinate_groups.append((lotname , centre_cord ,selected_coordinates.copy()))
+                booltest = False
+                coordinate_groups.append((lotname , centre_cord ,booltest,selected_coordinates.copy()))
                 selected_coordinates = []
                 centre_cord = []
     
                 # Draw green lines connecting the group of four coordinates
-                cv2.polylines(image, [np.array(coordinate_groups[-1][2::])], isClosed=True, color=(0, 255, 0), thickness=2)
+                cv2.polylines(image, [np.array(coordinate_groups[-1][3::])], isClosed=True, color=(0, 255, 0), thickness=2)
                 cv2.putText(image, str(coordinate_groups[-1][0]), (int(centre_x), int(centre_y)), cv2.FONT_HERSHEY_PLAIN, 2, (0, 255, 0), 2)
 
                 cv2.imshow(str(camera_angle)+" View", image)
@@ -59,7 +60,7 @@ def createlotspace(camera_angle,filepath):
         with open(jsonname, "r") as file:
             coordinate_groups = json.load(file)
         for x in range(len(coordinate_groups)):
-            cv2.polylines(image, [np.array(coordinate_groups[x][2::])], isClosed=True, color=(0, 255, 0), thickness=2)
+            cv2.polylines(image, [np.array(coordinate_groups[x][3::])], isClosed=True, color=(0, 255, 0), thickness=2)
             cv2.putText(image, str(coordinate_groups[x][0]), (int(coordinate_groups[x][1][0][0]) ,int(coordinate_groups[x][1][0][1])), cv2.FONT_HERSHEY_PLAIN, 2, (0, 255, 0), 2)
     else:
         print(f"The file '{jsonname}' does not exist.")

@@ -22,7 +22,8 @@ cv_font = cv2.FONT_HERSHEY_PLAIN
 # print(torch.backends.mps.is_available())
 
 def detectlot(camera_angle,filepath):
-    image = cv2.imread(filepath)
+    print("Yolo detection module created")
+    #image = cv2.imread(filepath)
     json_name = camera_angle+".json"
     bol_json_name= "bollean"+camera_angle+".json"
     lot_bools=[]
@@ -42,7 +43,7 @@ def detectlot(camera_angle,filepath):
     print(coordinate_groups[1])
     # Display the image in a window
     
-    results = model(image,device="mps")#WE CAN add device="0"  Nvidia for processing with gpu in MAC its mps
+    results = model(filepath,device="mps")#WE CAN add device="0"  Nvidia for processing with gpu in MAC its mps
     result = results[0]
     
     bboxes = np.array(result.boxes.xyxy.cpu(),dtype = "int")
@@ -52,13 +53,13 @@ def detectlot(camera_angle,filepath):
         if clss in [2,7]: #YOLO checks for person etc so we are interested in persons only
             (x,y,x2,y2) = bbox
             print(counter)
-            cv2.rectangle(image,(x,y),(x2,y2),rgb_purple,2)
+            cv2.rectangle(filepath,(x,y),(x2,y2),rgb_purple,2)
             # cx= int((x2+x)/2)
             # cy= int((y2+y)/2)+20
             # cv2.circle(image, ( cx, cy ), 4, rgb_purple, -1)
             cord1 = [(x, y), (x2, y), (x2, y2), (x, y2)]
             poly1 = Polygon(cord1)
-            cv2.putText(image,str(clss)+"-"+str(counter),(x,y-5),cv_font ,2,(255,0,0),2)
+            cv2.putText(filepath,str(clss)+"-"+str(counter),(x,y-5),cv_font ,2,(255,0,0),2)
             counter+= 1
             for testlots in range(len(coordinate_groups)):
                 poly2 = Polygon(coordinate_groups[testlots][2::][0])
@@ -71,12 +72,12 @@ def detectlot(camera_angle,filepath):
                      #if it finds any overlapping no need to check for other lot spaces
     for x in range(len(coordinate_groups)):
         if coordinate_groups[x][1] == False: #Lot is free (no car)
-            cv2.polylines(image, [np.array(coordinate_groups[x][2::])], isClosed=True, color=rgb_green, thickness=2)
-            cv2.putText(image, str(coordinate_groups[x][0]), ((coordinate_groups[x][2::][0][1])), cv_font, 2, rgb_green, 2)
+            cv2.polylines(filepath, [np.array(coordinate_groups[x][2::])], isClosed=True, color=rgb_green, thickness=2)
+            cv2.putText(filepath, str(coordinate_groups[x][0]), ((coordinate_groups[x][2::][0][1])), cv_font, 2, rgb_green, 2)
         else: #Lot contains car
-            cv2.polylines(image, [np.array(coordinate_groups[x][2::])], isClosed=True, color=rgb_red, thickness=2)
-            cv2.putText(image, str(coordinate_groups[x][0]), ((coordinate_groups[x][2::][0][1])), cv_font, 2, rgb_red, 2)
-    cv2.imshow('Img', image)
+            cv2.polylines(filepath, [np.array(coordinate_groups[x][2::])], isClosed=True, color=rgb_red, thickness=2)
+            cv2.putText(filepath, str(coordinate_groups[x][0]), ((coordinate_groups[x][2::][0][1])), cv_font, 2, rgb_red, 2)
+    cv2.imshow(str(camera_angle), filepath)
     #print(bboxes)
     cv2.startWindowThread()
     for groups in coordinate_groups:
@@ -88,4 +89,4 @@ def detectlot(camera_angle,filepath):
     for i in range(2):
         cv2.waitKey(1)
         
-detectlot("YM1", "image.png")
+#detectlot("YM1", "image.png")

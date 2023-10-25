@@ -21,6 +21,16 @@ paint_cords = []
 cord_groups = []
 zoom_angle_select = []
 paintmode= False
+class NumpyEncoder(json.JSONEncoder):
+    """ Special json encoder for numpy types """
+    def default(self, obj):
+        if isinstance(obj, np.integer):
+            return int(obj)
+        elif isinstance(obj, np.floating):
+            return float(obj)
+        elif isinstance(obj, np.ndarray):
+            return obj.tolist()
+        return json.JSONEncoder.default(self, obj)
 
 
 def select_zoom(camera_angle,filepath):
@@ -30,7 +40,7 @@ def select_zoom(camera_angle,filepath):
     #  firstly we check if this angle has any zoom on it if so it will create bbox on preselected locations and give user 
     #  to ability to add more locations
     
-    json_name = "zoom_areas.json"
+    json_name = "cords/zoom_areas.json"
     
     if os.path.exists(json_name):
         print("Zoomlarin oldugu dosya bulundu")
@@ -87,7 +97,7 @@ def createlotspace(camera_angle,filepath):
     #image = cv2.imread(filepath)
     cord_select = []
     cord_groups = []
-    jsonname = camera_angle+".json"
+    jsonname = "cords/"+camera_angle+".json"
     #CORDINATES Are appended SUCH ((AngelName+lotcount),CenterPoints,Booltest,Allpoints)
     # Callback function for mouse click events
     def mouse_callback(event, x, y, flags, param):
@@ -100,7 +110,7 @@ def createlotspace(camera_angle,filepath):
         if event == cv2.EVENT_LBUTTONDOWN:
             if (paintmode == False):
                 cord_select.append((x, y))
-                cv2.circle(filepath, (x, y), 4, (0, 255, 0), -1)
+                cv2.circle(filepath, (x, y), 2, (0, 255, 0), -1)
         
                 if len(cord_select) == 6:
                     lotname= camera_angle+"-"+str(len(cord_groups))
@@ -149,6 +159,13 @@ def createlotspace(camera_angle,filepath):
             else:
                 paintmode = False
                 print("paintmode is now ",paintmode)
+            if key == ord('c'):
+                if (paintmode == False):
+                    paintmode = True
+                    print("paintmode is now ",paintmode)
+                else:
+                    paintmode = False
+                    print("paintmode is now ",paintmode)
     
     cv2.destroyAllWindows()
     cv2.waitKey(1)
@@ -183,7 +200,7 @@ def videomain(camera_angle,filepath):  #main code which reads mp4 file
     
 def beforeyolo(camera_angle,frame):
     print("BeforYOLO")
-    json_name = "zoom_areas.json"
+    json_name = "cords/zoom_areas.json"
     if os.path.exists(json_name):
         print("Zoomlarin oldugu dosya bulundu")
         with open(json_name, "r") as file:
@@ -218,12 +235,13 @@ def beforeyolo(camera_angle,frame):
 def zoom_frames(camera_angle,frame):
     frames = []
     frames.append(frame)
-    json_name = "zoom_areas.json"
+    json_name = "cords/zoom_areas.json"
     if os.path.exists(json_name):
         print("Zoomlarin oldugu dosya bulundu")
         with open(json_name, "r") as file:
             zoom_areas = json.load(file)
     else:
+        print("Zoomlarin oldugu dosya bulunamadi")
         zoom_areas = {}
         
         
@@ -252,8 +270,49 @@ def videotoframe(camera_angle,filepath):
         #cv2.imwrite(camera_angle+".jpeg",frame)
         return(frame)
     
+def fullvideoframes(camera_angle, filepath, interval=30):
+    cap = cv2.VideoCapture(filepath)
+    videoframes = []
+    json_name = "cords/videoframes/"+camera_angle
+    if os.path.exists(json_name) and os.path.isdir(json_name):
+        # Loop through the files in the folder
+        for filename in os.listdir(json_name):
+            # Check if the file has a .png extension
+            if filename.endswith(".png"):
+                image = cv2.imread(os.path.join(json_name, filename))
+                if image is not None:
+                    videoframes.append(image)
+        return videoframes
+    else:
+        print("Frame oldugu dosya bulunmadi")
+        os.mkdir(json_name) 
+        start_time = 0
+        sayac = 0
+        while True:
+            ret, frame = cap.read()
+            
+            if not ret:
+                break
+            
+            cv2.imshow(str(camera_angle), frame)  # Show frame
+            
+            if cap.get(cv2.CAP_PROP_POS_MSEC) - start_time >= interval * 1000 or start_time == 0:
+                start_time = cap.get(cv2.CAP_PROP_POS_MSEC)
+                imfile = json_name+"/"+camera_angle+"_"+str(sayac)+".png"
+                cv2.imwrite(imfile,frame)  # Save frame every 30 seconds
+                videoframes.append(frame)
+                sayac+=1
+                print("30 seconds passed added ")
+                
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                break
+            
+        return videoframes
+
+
+
 def manuel_correction(camera_angle,frame):
-    jsonname = camera_angle+".json"
+    jsonname = "cords/"+camera_angle+".json"
     if os.path.exists(jsonname):
         print(f"The file '{jsonname}' exists.")
         
@@ -264,7 +323,8 @@ def manuel_correction(camera_angle,frame):
             cv2.putText(frame, str(cord_groups[x][0]), ((cord_groups[x][2::][0][1])), cv2.FONT_HERSHEY_PLAIN, 2, (0, 255, 0), 2)
    
     def mouse_callback(event, x, y, flags, param):
-        print(camera_angle, x," / ",y)
+        if event == cv2.EVENT_LBUTTONDOWN:
+            print(camera_angle, x," / ",y)
     cv2.namedWindow(str(camera_angle))
     cv2.setMouseCallback(str(camera_angle), mouse_callback)
     while(True):
@@ -272,6 +332,7 @@ def manuel_correction(camera_angle,frame):
         key = cv2.waitKey(0) & 0xFF 
         if key == ord('q'): # on press of q breakq
             break
+        
 #videomain("YBF_A", "YBF_A.mov1")
 
 cur_name = "UCB_A"
@@ -288,9 +349,26 @@ for x in range(len(frames)):
         #createlotspace(cur_name, frames[x])
     else: #Other zoom frames from main camera_angle
         detectlot(cur_name+"_"+str(x), frames[x])
-        doublecheckmodel(cur_name, cur_name+"_"+str(x))
+        #doublecheckmodel(cur_name, cur_name+"_"+str(x))
         #createlotspace(cur_name+"_"+str(x), frames[x])
         
+
+        
+# cur_name = "FASS_A"
+# cur_video = cur_name+".mp4"
+# for y in fullvideoframes(cur_name, cur_video, interval=30):
+#     cur_frame = y
+#     #select_zoom(cur_name, cur_frame)
+#     frames = (zoom_frames(cur_name, cur_frame))
+#     #manuel_correction(cur_name,cur_frame)
+    
+#     for x in range(len(frames)):
+#         if x == 0: #Main camera angle
+#             detectlot(cur_name, frames[x])
+            
+#             #createlotspace(cur_name, frames[x])
+#         else: #Other zoom frames from main camera_angle
+#             detectlot(cur_name+"_"+str(x), frames[x])
         
 #createlotspace("YM1", "image.png")
 

@@ -21,11 +21,12 @@ cv_font = cv2.FONT_HERSHEY_PLAIN
 # import torch
 # print(torch.backends.mps.is_available())
 
+
 def detectlot(camera_angle,filepath):
     print("Yolo detection module created")
     #image = cv2.imread(filepath)
-    json_name = camera_angle+".json"
-    bol_json_name= "bollean"+camera_angle+".json"
+    json_name = "cords/"+camera_angle+".json"
+    bol_json_name= "bools/bollean"+camera_angle+".json"
     lot_bools={}
     coordinate_groups=[]
     if os.path.exists(json_name):
@@ -61,7 +62,7 @@ def detectlot(camera_angle,filepath):
                     intersec = poly1.intersection(poly2).area
                     union = (poly1.area + poly2.area - intersec)
                     iou = intersec/union
-                    if (iou > 0.45):
+                    if (iou > 0.50):
                         coordinate_groups[testlots][1] = True
                      #if it finds any overlapping no need to check for other lot spaces
     for x in range(len(coordinate_groups)):
@@ -72,7 +73,7 @@ def detectlot(camera_angle,filepath):
             cv2.polylines(filepath, [np.array(coordinate_groups[x][2::])], isClosed=True, color=rgb_red, thickness=2)
             cv2.putText(filepath, str(coordinate_groups[x][0]), ((coordinate_groups[x][2::][0][1])), cv_font, 2, rgb_red, 2)
     cv2.imshow(str(camera_angle), filepath)
-    cv2.imwrite(camera_angle+".jpeg",filepath)
+    #cv2.imwrite(camera_angle+".jpeg",filepath)
     #print(bboxes)
     cv2.startWindowThread()
     for groups in coordinate_groups:
@@ -86,8 +87,8 @@ def detectlot(camera_angle,filepath):
         
         
 def doublecheckmodel(first,second): 
-    bol1_json_name= "bollean"+first+".json"
-    bol2_json_name= "bollean"+second+".json"
+    bol1_json_name= "bools/bollean"+first+".json"
+    bol2_json_name= "bools/bollean"+second+".json"
     if os.path.exists(bol1_json_name) and os.path.exists(bol1_json_name):
         with open(bol1_json_name, "r") as file1:
             first_boolvalues = json.load(file1)
